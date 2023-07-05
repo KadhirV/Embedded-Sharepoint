@@ -3,7 +3,7 @@
 import os
 from pathlib import Path
 directory =  os.path.dirname(os.getcwd()) #Obtains directory above current
-headers = ['/* Copyright (c) 2018-2022 UT Longhorn Racing Solar */\n', '# Copyright (c) 2018-2023 UT Longhorn Racing Solar\n']
+headers = ['/* Copyright (c) 2018-2023 UT Longhorn Racing Solar */\n', '# Copyright (c) 2018-2023 UT Longhorn Racing Solar\n']
 
 
 for root, subdirectories, files in os.walk(directory):
@@ -23,7 +23,7 @@ for root, subdirectories, files in os.walk(directory):
                     out = open(filepath, 'w')
                     out.writelines(text)
                     out.close
-            elif ("STM32F4" not in filepath) and ("CMSIS" not in filepath) and ("uCOS-III" not in filepath):#meant to ignore files which are not ours
+            elif ("STM32F4" not in filepath) and ("CMSIS" not in filepath) and ("RTOS" not in filepath):#meant to ignore files which are not ours
                 print(filepath)     
                 print('\n')
             f.close()
