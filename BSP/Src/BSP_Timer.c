@@ -2,8 +2,8 @@
 
 #include "BSP_Timer.h"
 #include "stm32f4xx.h"
-#include "stm32f4xx_tim.h"
-#include "stm32f4xx_rcc.h"
+#include "stm32f4xx_hal_tim.h"
+#include "stm32f4xx_hal_rcc.h"
 
 // define timers used here (number here only, i.e. '1' for TIM1)
 #define BSP_TIMER_TICKCOUNTER        2
@@ -60,18 +60,22 @@ static uint32_t Timer_Micros_To_PeriodPrescaler(uint32_t delay_us,
  */
 void BSP_Timer_Init(void) {
     // enable clock(s)
-    RCC_APB1PeriphClockCmd(BSP_TIMER_RCC(BSP_TIMER_TICKCOUNTER), ENABLE);
-    RCC_APB1PeriphClockCmd(BSP_TIMER_RCC(BSP_TIMER_ONESHOT), ENABLE);
+    if (__HAL_RCC_TIM2_IS_CLK_DISABLED()){
+        __HAL_RCC_TIM2_CLK_ENABLE();
+    }
+    if (__HAL_RCC_TIM5_IS_CLK_DISABLED()){
+        __HAL_RCC_TIM5_CLK_ENABLE();
+    }
 
-    RCC_ClocksTypeDef RCC_Clocks;
-    RCC_GetClocksFreq(&RCC_Clocks);
-    TimerFrequency = RCC_Clocks.PCLK2_Frequency;
+    RCC_ClkInitTypeDef RCC_Clocks;
+    HAL_RCC_ClockConfig(&RCC_Clocks, FLASH_ACR_LATENCY);
+    TimerFrequency = RCC_Clocks.APB2CLKDivider;
 
-    TIM_TimeBaseInitTypeDef timer_tickcounter;
-    TIM_TimeBaseStructInit(&timer_tickcounter);
+    TIM_Base_InitTypeDef timer_tickcounter;
+    TIM_Base_SetConfig(, &timer_tickcounter); 
 
-    TIM_TimeBaseInitTypeDef timer_oneshot;
-    TIM_TimeBaseStructInit(&timer_oneshot);
+    TIM_Base_InitTypeDef timer_oneshot;
+    TIM_Base_SetConfig(, &timer_oneshot);
 
     TIM_TimeBaseInit(BSP_TIMER_INST(BSP_TIMER_TICKCOUNTER), &timer_tickcounter);
     TIM_TimeBaseInit(BSP_TIMER_INST(BSP_TIMER_ONESHOT), &timer_oneshot);\
