@@ -59,6 +59,8 @@ static uint32_t Timer_Micros_To_PeriodPrescaler(uint32_t delay_us,
  * @return  None
  */
 void BSP_Timer_Init(void) {
+    
+    
     // enable clock(s)
     if (__HAL_RCC_TIM2_IS_CLK_DISABLED()){
         __HAL_RCC_TIM2_CLK_ENABLE();
@@ -78,7 +80,7 @@ void BSP_Timer_Init(void) {
     TIM_Base_SetConfig(, &timer_oneshot);
 
     TIM_TimeBaseInit(BSP_TIMER_INST(BSP_TIMER_TICKCOUNTER), &timer_tickcounter);
-    TIM_TimeBaseInit(BSP_TIMER_INST(BSP_TIMER_ONESHOT), &timer_oneshot);\
+    TIM_TimeBaseInit(BSP_TIMER_INST(BSP_TIMER_ONESHOT), &timer_oneshot);
 
     // one shot nvic initialization
     NVIC_InitTypeDef nvic_timer_oneshot = {
