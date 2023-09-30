@@ -191,5 +191,6 @@ int BSP_PWM_Get(uint8_t pin) {
  * @return  0 if contactor is off/open, 1 if on/closed
  */
 bool BSP_Contactor_Get(uint8_t contactorChoice) {
-
+    bool contactorReturnValue = ((GPIOB->IDR & GPIO_PIN_1) >> 1) ? 0 : 1; //read the one and only input pin
+    return contactorReturnValue;
 }
