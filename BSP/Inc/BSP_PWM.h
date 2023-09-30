@@ -7,6 +7,7 @@
 #include "stm32f4xx_hal_gpio.h"
 #include "stm32f4xx_hal_tim.h"
 #include "stm32f4xx_hal_rcc.h"
+#include "BSP.h"
 #include <stdbool.h>
 
 #define PWM_PERIOD 4000
@@ -16,7 +17,7 @@
  * @param   None
  * @return  None
  */
-void BSP_PWM_Init(void);
+BSP_Error BSP_PWM_Init(void);
 
 /**
  * @brief   Sets a pin's duty cycle
@@ -24,7 +25,7 @@ void BSP_PWM_Init(void);
  * @param   pin: pin number whose speed should be changed
  * @return  ErrorStatus
  */
-ErrorStatus BSP_PWM_Set(uint8_t pin, uint32_t speed);
+BSP_Error BSP_PWM_Set(uint8_t pin, uint32_t speed);
 
 /**
  * @brief   Get current duty cycle of a single pin, return -1 if input is invalid

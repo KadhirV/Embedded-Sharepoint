@@ -2,6 +2,8 @@
     "files.associations": {
         "*.cpp": "cpp",
         "*.asm": "asm-intel-x86-generic",
-        "stm32f4xx_hal.h": "c"
+        "stm32f4xx_hal.h": "c",
+        "stm32f4xx_hal_tim.h": "c",
+        "bsp_pwm.h": "c"
     }
 }

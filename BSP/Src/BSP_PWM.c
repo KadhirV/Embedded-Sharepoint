@@ -2,8 +2,11 @@
 
 // init structs
 static GPIO_InitTypeDef gpio_struct;
+
 static TIM_OC_InitTypeDef timer_oc_struct;
-static TIM_Base_InitTypeDef timer_base_struct;
+static TIM_HandleTypeDef timer3_handle;
+static TIM_HandleTypeDef timer8_handle;
+static TIM_HandleTypeDef timer12_handle;
 
 // https://visualgdb.com/tutorials/arm/stm32/timers/hal/
 
@@ -12,7 +15,9 @@ static TIM_Base_InitTypeDef timer_base_struct;
  * @param   None
  * @return  None
  */
-void BSP_PWM_Init(void) {
+BSP_Error BSP_PWM_Init(void) {
+
+    BSP_Error pwm_init_status;
 
     // enable timer 3, 8, 12 if they are disabled
     if (__HAL_RCC_TIM3_IS_CLK_DISABLED()) {
@@ -53,23 +58,23 @@ void BSP_PWM_Init(void) {
     HAL_GPIO_Init(GPIOB, &gpio_struct);
 
     // gpio stuff done, configure timer blocks themselves now
-    timer_base_struct.Period = PWM_PERIOD;
-    timer_base_struct.Prescaler = 0;
-    timer_base_struct.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    timer_base_struct.CounterMode = TIM_COUNTERMODE_UP;
-    timer_base_struct.RepetitionCounter = 0;
-    // struct to call the actual HAL timer config init
-    TIM_HandleTypeDef timer_configuration;
-    timer_configuration.Init = timer_base_struct;
-    timer_configuration.Instance = TIM3;
+    timer3_handle.Init.Period = PWM_PERIOD;
+    timer3_handle.Init.Prescaler = 0;
+    timer3_handle.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+    timer3_handle.Init.CounterMode = TIM_COUNTERMODE_UP;
+    timer3_handle.Init.RepetitionCounter = 0;
+
+    timer8_handle = timer12_handle = timer3_handle; // Same config EXCEPT for instances
+    timer3_handle.Instance = TIM3;
+    timer8_handle.Instance = TIM8;
+    timer12_handle.Instance = TIM12;
+
     // timer 3
-    HAL_TIM_Base_Init(&timer_configuration);
-    timer_configuration.Instance = TIM8;
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_Base_Init(&timer3_handle));
     // timer 8
-    HAL_TIM_Base_init(&timer_configuration);
-    timer_configuration.Instance = TIM12;
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_Base_init(&timer8_handle));
     // timer 12
-    HAL_TIM_Base_init(&timer_configuration);
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_Base_init(&timer12_handle));
 
     // oc struct init
     
@@ -84,8 +89,37 @@ void BSP_PWM_Init(void) {
         __HAL_RCC_TIM12_CLK_ENABLE();
     }
     // set the config for the timers
+    timer_oc_struct.OCMode = TIM_OCMODE_PWM1;
+    timer_oc_struct.OCIdleState = TIM_OCIDLESTATE_RESET;
+    timer_oc_struct.Pulse = 0;
+    timer_oc_struct.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+    timer_oc_struct.OCPolarity = TIM_OCPOLARITY_HIGH;
+    timer_oc_struct.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+    // BPS timer config
+    // TODO: can this be cleaned up? Unsure which HAL_TIM_XXX functions we need to use...
+    // Look into ConfigChannel vs just Init() ****
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_ConfigChannel(&timer3_handle, &timer_oc_struct, TIM_CHANNEL_3));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_ConfigChannel(&timer8_handle, &timer_oc_struct, TIM_CHANNEL_1));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_ConfigChannel(&timer8_handle, &timer_oc_struct, TIM_CHANNEL_2));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_ConfigChannel(&timer12_handle, &timer_oc_struct, TIM_CHANNEL_1));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_ConfigChannel(&timer12_handle, &timer_oc_struct, TIM_CHANNEL_2));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_Start(&timer3_handle, TIM_CHANNEL_3));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_Start(&timer8_handle, TIM_CHANNEL_1));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_Start(&timer8_handle, TIM_CHANNEL_2));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_Start(&timer12_handle, TIM_CHANNEL_1));
+    pwm_init_status |= CONVERT_RETURN(HAL_TIM_PWM_Start(&timer12_handle, TIM_CHANNEL_2));
+    // PWM init is done
 
-    
+    // For contactor
+    GPIO_InitTypeDef GPIO_B1Init;
+    GPIO_B1Init.Pin = GPIO_PIN_1; //input pin is gpio B1
+    GPIO_B1Init.Mode = MODE_INPUT;
+    GPIO_B1Init.Speed = GPIO_SPEED_FAST;
+    GPIO_B1Init.Pull = GPIO_PULLUP;
+    HAL_GPIO_Init(GPIOB, &GPIO_B1Init);
+
+
+    return pwm_init_status;
 }
 
 /**
@@ -94,8 +128,30 @@ void BSP_PWM_Init(void) {
  * @param   pin: pin number whose speed should be changed
  * @return  ErrorStatus
  */
-ErrorStatus BSP_PWM_Set(uint8_t pin, uint32_t speed) {
-
+BSP_Error BSP_PWM_Set(uint8_t pin, uint32_t speed) {
+    // new PWM must be within range
+    speed = (speed > PWM_PERIOD) ? PWM_PERIOD : speed;
+    switch (pin) {
+        case 0:
+            __HAL_TIM_SET_COMPARE(&timer8_handle, TIM_CHANNEL_1, speed);
+            break;
+        case 1:
+            __HAL_TIM_SET_COMPARE(&timer8_handle, TIM_CHANNEL_2, speed);
+            break;
+        case 2:
+            __HAL_TIM_SET_COMPARE(&timer12_handle, TIM_CHANNEL_1, speed);
+            break;
+        case 3:
+            __HAL_TIM_SET_COMPARE(&timer12_handle, TIM_CHANNEL_1, speed);
+            break;
+        case 4:
+            __HAL_TIM_SET_COMPARE(&timer3_handle, TIM_CHANNEL_3, speed);
+            break;
+        default:
+            return BSP_ERROR;
+            break;
+    }
+    return BSP_ERROR;
 }
 
 /**
@@ -104,7 +160,28 @@ ErrorStatus BSP_PWM_Set(uint8_t pin, uint32_t speed) {
  * @return  Current PWM duty cycle of pin
  */
 int BSP_PWM_Get(uint8_t pin) {
-
+    int dutyCycle;
+    switch (pin) {
+        case 0:
+            dutyCycle = __HAL_TIM_GET_COMPARE(&timer8_handle, TIM_CHANNEL_1);
+            break;
+        case 1:
+            dutyCycle = __HAL_TIM_GET_COMPARE(&timer8_handle, TIM_CHANNEL_2);
+            break;
+        case 2:
+            dutyCycle = __HAL_TIM_GET_COMPARE(&timer12_handle, TIM_CHANNEL_1);
+            break;
+        case 3:
+            dutyCycle = __HAL_TIM_GET_COMPARE(&timer12_handle, TIM_CHANNEL_1);
+            break;
+        case 4:
+            dutyCycle = __HAL_TIM_GET_COMPARE(&timer3_handle, TIM_CHANNEL_3);
+            break;
+        default:
+            dutyCycle = -1;
+            break;
+    }
+    return dutyCycle;
 }
 
 /**
