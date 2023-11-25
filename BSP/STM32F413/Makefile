@@ -14,17 +14,18 @@
 # inputs
 ######################################
 TARGET ?= $(error TARGET is not set)
-PROJECT_DIR ?= $(error PROJECT_DIR is not set)
 BUILD_DIR ?= $(error BUILD_DIR is not set)
+DEBUG ?= 1
 
 ######################################
 # building variables
 ######################################
-# debug build?
-DEBUG = 1
 # optimization
-OPT = -Og
-
+ifeq ($(DEBUG), 0)
+OPT = -O3
+else
+OPT = -Og -g3
+endif
 
 #######################################
 # paths
@@ -45,7 +46,6 @@ $(BSP_DIR)/STM32F4xx_HAL_Driver/Src/*.c	\
 $(FREERTOS_DIR)/*.c	\
 $(UTIL_DIR)/Src/*.c	\
 $(BSP_DIR)/../Src/*.c 	\
-
 
 # Expand wildcards to get each source file individually
 C_SOURCES := $(foreach path, $(C_SOURCES), $(wildcard $(path)))
@@ -145,7 +145,7 @@ ASFLAGS = $(MCU) $(AS_DEFS) $(AS_INCLUDES) $(OPT) -Wall -Wno-comment -fdata-sect
 CFLAGS += $(MCU) $(C_DEFS) $(C_INCLUDES) $(OPT) -Wall -Wno-comment -fdata-sections -ffunction-sections
 
 ifeq ($(DEBUG), 1)
-CFLAGS += -g -gdwarf-2
+CFLAGS += -g -gdwarf-2 -DDEBUG
 endif
 
 # Generate dependency information
